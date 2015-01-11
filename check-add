@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+appurl=$(heroku info -s | grep web_url | cut -d= -f2)
+
+curl -vs -XPOST -H"Content-Type: application/json" -d"{\"url\":\"${1}\"}" ${appurl}urls
+
