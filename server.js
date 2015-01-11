@@ -132,7 +132,7 @@ app.delete("/urls/:hash", function (req, res) {
 });
 
 var toJson = function (obj) {
-  var attrs = _.pick(obj, "id href interval history".split(" "));
+  var attrs = _.pick(obj, "id href interval history state".split(" "));
   var responseTimes = _.pluck(obj.history, "msec");
   var stats = {
     totalChecks: obj.totalChecks,
