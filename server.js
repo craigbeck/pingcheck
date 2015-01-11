@@ -82,16 +82,26 @@ app.post("/urls", function (req, res) {
     return res.status(200).send({ ok: true, data: toJson(urls[urlObj.id]) });
   }
   urls[urlObj.id] = urlObj;
+  urlObj.on("started", function (obj) {
+    console.log("%s - STARTED %s %s",
+                new Date().valueOf(),
+                obj.id, obj.href);
+  });
+  urlObj.on("stopped", function (obj) {
+    console.log("%s - STOPPED %s %s",
+                new Date().valueOf(),
+                obj.id, obj.href);
+  });
   urlObj.on("data", function (data) {
     console.log("%s - PING %s %s %s (%sms)",
                 new Date().valueOf(),
                 data.obj.id, data.obj.href, data.status, data.msec)
   });
-  urlObj.on("error", function () {
+  urlObj.on("error", function (data) {
     urlObj.stop();
     console.log("%s - PING %s %s %s (%sms)",
                 new Date().valueOf(),
-                data.obj.id, data.obj.href, err, data.msec);
+                data.obj.id, data.obj.href, data.error, data.msec);
   })
   urlObj.start();
   res.status(201).send({ ok: true, data: toJson(urlObj) });
@@ -103,6 +113,15 @@ app.get("/urls/:hash", function (req, res) {
     return req.status(404).send({ ok: false, error: "Not Found" });
   }
   res.send({ ok: true, url: toJson(url) });
+});
+
+app.delete("/urls/:hash", function (req, res) {
+  var urlCheck = urls[req.params.hash];
+  if (urlCheck) {
+    urlCheck.stop();
+    delete urls[req.params.hash];
+  }
+  res.send({ ok: true });
 });
 
 var toJson = function (obj) {
@@ -118,7 +137,7 @@ var toJson = function (obj) {
   };
   var meta = {
     _links: {
-      self: (process.env.HEROKU_URL || "/") + "url/" + obj.id
+      self: (process.env.HEROKU_URL || "/") + "urls/" + obj.id
     }
   };
   return _.extend(meta, { stats: stats }, attrs);
