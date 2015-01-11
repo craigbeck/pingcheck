@@ -12,6 +12,7 @@
     "body-parser": "1.10.1",
     "express.io": "1.1.13",
     "lodash": "2.4.1",
+    "nodetime": "0.8.15",
     "on-finished": "2.2.0",
     "request": "2.51.0",
     "rollbar": "0.4.1"

@@ -32,6 +32,13 @@ if (process.env.ROLLBAR_ACCESS_TOKEN) {
   };
 }
 
+if(process.env.NODETIME_ACCOUNT_KEY) {
+  require("nodetime").profile({
+    accountKey: process.env.NODETIME_ACCOUNT_KEY,
+    appName: "pingcheck"
+  });
+}
+
 app.use(function (req, res, next) {
   req._startAt = process.hrtime();
   req._startTime = new Date();
