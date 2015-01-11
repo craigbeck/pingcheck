@@ -105,10 +105,10 @@ app.post("/urls", function (req, res) {
                 data.obj.id, data.obj.href, data.status, data.msec)
   });
   urlObj.on("error", function (data) {
-    urlObj.stop();
     console.log("%s - PING %s %s %s (%sms)",
                 new Date().valueOf(),
                 data.obj.id, data.obj.href, data.error, data.msec);
+    urlObj.stop();
   })
   urlObj.start();
   res.status(201).send({ ok: true, data: toJson(urlObj) });
