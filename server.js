@@ -82,7 +82,7 @@ app.post("/urls", function (req, res) {
   var url = req.body.url;
   var interval = parseInt(req.body.interval || 60, 10);
   if (!url) {
-    return req.status(400).send({ ok: false, error: "Bad Request" });
+    return res.status(400).send({ ok: false, error: "Bad Request" });
   }
   var urlObj = new Url(url, { interval: interval });
   if (urls[urlObj.id]) {
