@@ -16,6 +16,16 @@ app.get("/", function (req, res) {
   });
 });
 
+app.get("/*", function (req, res) {
+  res.status(404)
+    .send({
+      ok: false,
+      statusCode: 404,
+      error: "Not Found",
+      path: req.path
+    });
+});
+
 
 var server = app.listen(process.env.PORT || 3003, function () {
   var addr = process.env.HEROKU_URL
