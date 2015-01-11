@@ -5,6 +5,7 @@ var Rollbar = require("rollbar");
 var onFinished = require("on-finished");
 var _ = require("lodash");
 var pkg = require("./package.json");
+var Url = require("./lib/url");
 
 var app = express();
 
@@ -18,8 +19,17 @@ var nextReqId = (function () {
 
 app.use(BodyParser.json());
 
+var notify = function (message) {
+  console.log("%s - NOTIFY %s", new Date().valueOf, message);
+};
+
 if (process.env.ROLLBAR_ACCESS_TOKEN) {
+  rollbar.init(process.env.ROLLBAR_ACCESS_TOKEN);
   app.use(rollbar.errorHandler(process.env.ROLLBAR_ACCESS_TOKEN));
+
+  notify = function (message) {
+    rollbar.reportMessage(message);
+  };
 }
 
 app.use(function (req, res, next) {
@@ -58,7 +68,7 @@ app.get("/", function (req, res) {
 var urls = {};
 
 app.get("/urls", function (req, res) {
-  res.send({ ok: true, urls: _.toArray(urls) });
+  res.send({ ok: true, urls: _.map(_.toArray(urls), toJson) });
 });
 
 app.post("/urls", function (req, res) {
@@ -66,17 +76,21 @@ app.post("/urls", function (req, res) {
   if (!url) {
     return req.status(400).send({ ok: false, error: "Bad Request" });
   }
-  var shasum = crypto.createHash('sha1');
-  shasum.update(url);
-  var hash = shasum.digest("hex");
-  var urlObj = {
-    id: hash,
-    url: url,
-    added: new Date(),
-    checks: 0
-  };
-  urls[hash] = urlObj;
-  res.send({ ok: true, data: urlObj });
+  var urlObj = new Url(url);
+  urls[urlObj.id] = urlObj;
+  urlObj.on("data", function (data) {
+    console.log("%s - PING %s %s %s (%sms)",
+                new Date().valueOf(),
+                data.obj.id, data.obj.href, data.status, data.msec)
+  });
+  urlObj.on("error", function () {
+    urlObj.stop();
+    console.log("%s - PING %s %s %s (%sms)",
+                new Date().valueOf(),
+                data.obj.id, data.obj.href, err, data.msec);
+  })
+  urlObj.start();
+  res.send({ ok: true, data: toJson(urlObj) });
 });
 
 app.get("/urls/:hash", function (req, res) {
@@ -84,8 +98,18 @@ app.get("/urls/:hash", function (req, res) {
   if (!url) {
     return req.status(404).send({ ok: false, error: "Not Found" });
   }
-  res.send({ ok: true, url: url });
+  res.send({ ok: true, url: toJson(url) });
 });
+
+var toJson = function (obj) {
+  var attrs = _.pick(obj, "id href interval".split(" "));
+  var meta = {
+    _links: {
+      self: (process.env.HEROU_URL || "/") + "url/" + obj.id
+    }
+  };
+  return _.extend(meta, attrs);
+}
 
 var notFound = function (req, res) {
   res.status(404)
