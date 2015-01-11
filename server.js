@@ -24,11 +24,11 @@ var notify = function (message) {
 };
 
 if (process.env.ROLLBAR_ACCESS_TOKEN) {
-  rollbar.init(process.env.ROLLBAR_ACCESS_TOKEN);
-  app.use(rollbar.errorHandler(process.env.ROLLBAR_ACCESS_TOKEN));
+  Rollbar.init(process.env.ROLLBAR_ACCESS_TOKEN);
+  app.use(Rollbar.errorHandler(process.env.ROLLBAR_ACCESS_TOKEN));
 
   notify = function (message) {
-    rollbar.reportMessage(message);
+    Rollbar.reportMessage(message);
   };
 }
 
