@@ -73,10 +73,14 @@ app.get("/urls", function (req, res) {
 
 app.post("/urls", function (req, res) {
   var url = req.body.url;
+  var interval = parseInt(req.body.interval || 60, 10);
   if (!url) {
     return req.status(400).send({ ok: false, error: "Bad Request" });
   }
-  var urlObj = new Url(url);
+  var urlObj = new Url(url, { interval: interval });
+  if (urls[urlObj.id]) {
+    return res.status(200).send({ ok: true, data: toJson(urls[urlObj.id]) });
+  }
   urls[urlObj.id] = urlObj;
   urlObj.on("data", function (data) {
     console.log("%s - PING %s %s %s (%sms)",
@@ -90,7 +94,7 @@ app.post("/urls", function (req, res) {
                 data.obj.id, data.obj.href, err, data.msec);
   })
   urlObj.start();
-  res.send({ ok: true, data: toJson(urlObj) });
+  res.status(201).send({ ok: true, data: toJson(urlObj) });
 });
 
 app.get("/urls/:hash", function (req, res) {
@@ -102,13 +106,22 @@ app.get("/urls/:hash", function (req, res) {
 });
 
 var toJson = function (obj) {
-  var attrs = _.pick(obj, "id href interval".split(" "));
+  var attrs = _.pick(obj, "id href interval history".split(" "));
+  var responseTimes = _.pluck(obj.history, "msec");
+  var stats = {
+    totalChecks: obj.totalChecks,
+    maxResponse: _.max(responseTimes) || 0,
+    minResponse: _.min(responseTimes) || 0,
+    avgResponse: _.reduce(responseTimes, function (sum, obj) {
+      return sum + obj.msec;
+    }) / (responseTimes.length || 1) * 1.0
+  };
   var meta = {
     _links: {
-      self: (process.env.HEROU_URL || "/") + "url/" + obj.id
+      self: (process.env.HEROKU_URL || "/") + "url/" + obj.id
     }
   };
-  return _.extend(meta, attrs);
+  return _.extend(meta, { stats: stats }, attrs);
 }
 
 var notFound = function (req, res) {
