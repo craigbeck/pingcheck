@@ -8,6 +8,7 @@ var postal = require("postal");
 var _ = require("lodash");
 var pkg = require("./package.json");
 var Url = require("./lib/url");
+var fs = require("fs");
 
 var app = express();
 
@@ -104,6 +105,16 @@ app.use(function (req, res, next) {
 });
 
 app.get("/", function (req, res) {
+  if (req.accepts("html")) {
+    fs.readFile("./app/index.html", function (err, data) {
+      if (err) {
+        throw err;
+      }
+      res.send(data.toString());
+    });
+    return;
+  }
+  console.log("status");
   res.send({
     name: pkg.name,
     version: pkg.version,
