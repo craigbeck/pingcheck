@@ -43,20 +43,40 @@ if(process.env.NODETIME_ACCOUNT_KEY) {
 
 var evtChannel = postal.channel("events");
 
-if (process.env.KEEN_WRITE_KEY) {
+if (process.env.KEEN_WRITE_KEY && process.env.KEEN_PROJECT_ID) {
   // Configure instance. Only projectId and writeKey are required to send data.
   var keen = keenIO.configure({
       projectId: process.env['KEEN_PROJECT_ID'],
       writeKey: process.env['KEEN_WRITE_KEY']
   });
 
-  evtChannel.subscribe("url.checked", function(data, envelope) {
+  var agentStats = {
+    runningAgents: 0,
+    totalAgents: 0
+  }
+
+  evtChannel.subscribe("url.checked", function (data) {
     keen.addEvent("url.checked", data);
   });
 
-  evtChannel.subscribe("url.added", function (data, envelope) {
+  evtChannel.subscribe("url.added", function (data) {
     keen.addEvent("url.added", data);
+    agentStats.totalAgents++;
   });
+
+  evtChannel.subscribe("agent.started", function (data) {
+    agentStats.runningAgents++;
+  });
+
+  evtChannel.subscribe("agent.stopped", function (data) {
+    agentStats.runningAgents--;
+  });
+
+  var pulse = function () {
+    keen.addEvent("agent.stats", agentStats);
+    setTimeout(pulse, 60 * 1000);
+  }
+  process.nextTick(pulse);
 }
 
 app.use(function (req, res, next) {
