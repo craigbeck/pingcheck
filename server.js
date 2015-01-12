@@ -3,6 +3,8 @@ var crypto = require('crypto');
 var BodyParser = require("body-parser");
 var Rollbar = require("rollbar");
 var onFinished = require("on-finished");
+var keenIO = require("keen.io");
+var postal = require("postal");
 var _ = require("lodash");
 var pkg = require("./package.json");
 var Url = require("./lib/url");
@@ -36,6 +38,24 @@ if(process.env.NODETIME_ACCOUNT_KEY) {
   require("nodetime").profile({
     accountKey: process.env.NODETIME_ACCOUNT_KEY,
     appName: "pingcheck"
+  });
+}
+
+var evtChannel = postal.channel("events");
+
+if (process.env.KEEN_WRITE_KEY) {
+  // Configure instance. Only projectId and writeKey are required to send data.
+  var keen = keenIO.configure({
+      projectId: process.env['KEEN_PROJECT_ID'],
+      writeKey: process.env['KEEN_WRITE_KEY']
+  });
+
+  evtChannel.subscribe("url.checked", function(data, envelope) {
+    keen.addEvent("url.checked", data);
+  });
+
+  evtChannel.subscribe("url.added", function (data, envelope) {
+    keen.addEvent("url.added", data);
   });
 }
 
@@ -88,28 +108,44 @@ app.post("/urls", function (req, res) {
   if (urls[urlObj.id]) {
     return res.status(200).send({ ok: true, data: toJson(urls[urlObj.id]) });
   }
+
   urls[urlObj.id] = urlObj;
+  evtChannel.publish("url.added", { id: urlObj.id, href: urlObj.href });
+
   urlObj.on("started", function (obj) {
     console.log("%s - STARTED %s %s",
                 new Date().valueOf(),
                 obj.id, obj.href);
   });
+
   urlObj.on("stopped", function (obj) {
     console.log("%s - STOPPED %s %s",
                 new Date().valueOf(),
                 obj.id, obj.href);
   });
+
   urlObj.on("data", function (data) {
     console.log("%s - PING %s %s %s (%sms)",
                 new Date().valueOf(),
-                data.obj.id, data.obj.href, data.status, data.msec)
+                data.obj.id, data.obj.href, data.status, data.msec);
+    evtChannel.publish("url.checked", {
+      id: urlObj.id,
+      href: urlObj.href,
+      statusCode: data.status,
+      success: (data.status < 400),
+      timestamp: data.startTime,
+      responseTime: data.msec
+    });
   });
+
   urlObj.on("error", function (data) {
     console.log("%s - PING %s %s %s (%sms)",
                 new Date().valueOf(),
                 data.obj.id, data.obj.href, data.error, data.msec);
+    evtChannel.publish("url.added", { id: urlObj.id, href: urlObj.href });
     urlObj.stop();
-  })
+  });
+
   urlObj.start();
   res.status(201).send({ ok: true, data: toJson(urlObj) });
 });
