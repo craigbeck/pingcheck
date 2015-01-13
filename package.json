@@ -1,10 +1,10 @@
 {
   "name": "pingcheck",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Website status checker",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "gulp check"
   },
   "author": "Craig Beck <luckybonza@gmail.com> (http://craigbeck.github.io/)",
   "license": "MIT",
@@ -23,5 +23,14 @@
   "engines": {
     "node": "0.10.x",
     "npm": "2.1.x"
+  },
+  "devDependencies": {
+    "chai": "1.10.0",
+    "gulp": "3.8.10",
+    "gulp-jasmine": "2.0.0",
+    "gulp-jshint": "1.9.0",
+    "gulp-mocha": "2.0.0",
+    "jshint-stylish": "1.0.0",
+    "run-sequence": "1.0.2",
   }
 }
