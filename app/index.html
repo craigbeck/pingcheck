@@ -4,7 +4,7 @@
 	<title>pingcheck</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<script src="//d26b395fwzu5fz.cloudfront.net/3.2.1/keen.min.js" type="text/javascript"></script>
-	<script src="//cdn.socket.io/socket.io-1.2.1.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
 	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
 </head>
 <style>
@@ -16,7 +16,7 @@
 	}
 </style>
 <body>
-	<nav class="navbar navbar-default navbar-fixed-top">
+	<nav class="navbar navbar-default navbar-static-top">
 	  <div class="container-fluid">
 	    <div class="navbar-header">
 		    <a class="navbar-brand" href="/">pingcheck</a>
@@ -25,10 +25,10 @@
 	</nav>
 	<div class="container-fluid">
 		<div class="row">
-			<div class="col-md-5">
+			<div class="col-md-6">
 				<div id="chart-1"></div>
 			</div>
-			<div class="col-md-7">
+			<div class="col-md-6">
 				<div id="chart-2"></div>
 			</div>
 		</div>
@@ -39,28 +39,39 @@
 		</div>
 	</div>
 	<script type="text/javascript">
-var client = new Keen({
-  projectId: "54b2d41d672e6c5b52e3bd6c",
-  readKey: "b1c09e3d1d7274fc35871efa01078217ff89d91399dc3fe49c5465ae18605c3e82ebda9c133ec9da3d8bdbd6843dadb77ec107d8073f27459937616e41a52f74af4088325c4047c0765f336b869a55c9ef6128a22e996e147da02adc5e0ad3f121f451bae23bf9df970f746d363bd04c"
-});
-Keen.ready(function(){
-  var totalUrls = new Keen.Query("count", {
-    eventCollection: "url.added"
-  });
-  client.draw(totalUrls, document.getElementById("chart-1"), {
-		chartType: "metric",
-		title: "Urls Added",
-		colors: ["#49c5b1"]
-  });
-  var checksCompleted = new Keen.Query("count", {
-  	eventCollection: "url.checked"
-  });
-  client.draw(checksCompleted, document.getElementById("chart-2"), {
-  	chartType: "metric",
-  	title: "Checks Completed",
-		colors: ["#49c5b1"]
-  });
-});
+
+	var client = new Keen({
+	  projectId: "54b2d41d672e6c5b52e3bd6c",
+	  readKey: "b1c09e3d1d7274fc35871efa01078217ff89d91399dc3fe49c5465ae18605c3e82ebda9c133ec9da3d8bdbd6843dadb77ec107d8073f27459937616e41a52f74af4088325c4047c0765f336b869a55c9ef6128a22e996e147da02adc5e0ad3f121f451bae23bf9df970f746d363bd04c"
+	});
+
+	var totalUrls, checksCompleted
+	Keen.ready(function(){
+
+	  totalUrls = new Keen.Query("count", {
+	    eventCollection: "url.added"
+	  });
+	  client.draw(totalUrls, document.getElementById("chart-1"), {
+			chartType: "metric",
+			title: "Urls Added",
+			colors: ["#49c5b1"]
+	  });
+
+	  checksCompleted = new Keen.Query("count", {
+	  	eventCollection: "url.checked"
+	  });
+	  client.draw(checksCompleted, document.getElementById("chart-2"), {
+	  	chartType: "metric",
+	  	title: "Checks Completed",
+			colors: ["#49c5b1"]
+	  });
+	});
+
+	var io = io.connect();
+
+	io.on("pong", function () {
+		console.log("RECV pong");
+	});
 
 	</script>
 </body>

@@ -10,7 +10,14 @@ var pkg = require("./package.json");
 var Url = require("./lib/url");
 var fs = require("fs");
 
-var app = express();
+var app = express().http().io();
+
+app.io.route("ping", function (req) {
+  console.log("socket ping RECV");
+  setTimeout(function () {
+    req.io.emit("pong");
+  }, 500);
+});
 
 var nextReqId = (function () {
   var id = 0;
