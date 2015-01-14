@@ -1,3 +1,4 @@
+var expect = require("chai").expect;
 var Stats = require("../lib/stats");
 
 describe("Stats module", function () {

@@ -21,7 +21,6 @@
   "predef"        : [
     "describe",
     "it",
-    "expect",
     "before",
     "beforeEach",
     "after",
