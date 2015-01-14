@@ -6,8 +6,10 @@ var onFinished = require("on-finished");
 var keenIO = require("keen.io");
 var postal = require("postal");
 var _ = require("lodash");
+var url = require("url");
 var pkg = require("./package.json");
-var Url = require("./lib/url");
+var Agent = require("./lib/agent");
+var Stats = require("./lib/stats");
 var fs = require("fs");
 
 var app = express().http().io();
@@ -130,45 +132,67 @@ app.get("/", function (req, res) {
   });
 });
 
-var urls = {};
+var agents = {};
 
-app.get("/urls", function (req, res) {
-  res.send({ ok: true, urls: _.map(_.toArray(urls), toJson) });
+app.get("/agents", function (req, res) {
+  res.send({ ok: true, agents: _.map(_.toArray(agents), toJson) });
 });
 
-app.post("/urls", function (req, res) {
-  var url = req.body.url;
+var isValidUri = function (str) {
+  // minimal host validation for "<host>.<tld>"
+  // where host is 2+ alphanumeric characters
+  // and tld is 2+ alpha characters
+  var hostRegex = /\w{2,}\.[a-z]{2,}/;
+  try {
+    return url.parse(str).host.match(hostRegex);
+  } catch (e) {
+    return false;
+  }
+}
+
+app.post("/agents", function (req, res) {
+  var uri = req.body.url;
+  try {
+    url.parse(uri);
+  } catch (e) {
+    return res.status(400).send({
+      ok: false,
+      error: "Bad Request",
+      message: "Invalid URL",
+      url: uri
+    });
+  }
   var interval = parseInt(req.body.interval || 60, 10);
-  if (!url) {
+  if (!uri) {
     return res.status(400).send({ ok: false, error: "Bad Request" });
   }
-  var urlObj = new Url(url, { interval: interval });
-  if (urls[urlObj.id]) {
-    return res.status(200).send({ ok: true, data: toJson(urls[urlObj.id]) });
+  var agent = new Agent(uri, { interval: interval });
+  if (agents[agent.id]) {
+    return res.status(200).send({ ok: true, data: toJson(agents[agent.id]) });
   }
 
-  urls[urlObj.id] = urlObj;
-  evtChannel.publish("url.added", { id: urlObj.id, href: urlObj.href });
+  agents[agent.id] = agent;
+  evtChannel.publish("url.added", { id: agent.id, href: agent.href });
 
-  urlObj.on("started", function (obj) {
+  agent.on("started", function (obj) {
     console.log("%s - STARTED %s %s",
                 new Date().valueOf(),
                 obj.id, obj.href);
   });
 
-  urlObj.on("stopped", function (obj) {
+  agent.on("stopped", function (obj) {
     console.log("%s - STOPPED %s %s",
                 new Date().valueOf(),
                 obj.id, obj.href);
   });
 
-  urlObj.on("data", function (data) {
+  agent.on("data", function (data) {
     console.log("%s - PING %s %s %s (%sms)",
                 new Date().valueOf(),
                 data.obj.id, data.obj.href, data.status, data.msec);
     evtChannel.publish("url.checked", {
-      id: urlObj.id,
-      href: urlObj.href,
+      id: agent.id,
+      href: agent.href,
       statusCode: data.status,
       success: (data.status < 400),
       timestamp: data.startTime,
@@ -176,31 +200,31 @@ app.post("/urls", function (req, res) {
     });
   });
 
-  urlObj.on("error", function (data) {
+  agent.on("error", function (data) {
     console.log("%s - PING %s %s %s (%sms)",
                 new Date().valueOf(),
                 data.obj.id, data.obj.href, data.error, data.msec);
-    evtChannel.publish("url.added", { id: urlObj.id, href: urlObj.href });
-    urlObj.stop();
+    evtChannel.publish("url.added", { id: agent.id, href: agent.href });
+    agent.stop();
   });
 
-  urlObj.start();
-  res.status(201).send({ ok: true, data: toJson(urlObj) });
+  agent.start();
+  res.status(201).send({ ok: true, data: toJson(agent) });
 });
 
-app.get("/urls/:hash", function (req, res) {
-  var url = urls[req.params.hash];
+app.get("/agents/:hash", function (req, res) {
+  var url = agents[req.params.hash];
   if (!url) {
     return req.status(404).send({ ok: false, error: "Not Found" });
   }
   res.send({ ok: true, url: toJson(url) });
 });
 
-app.delete("/urls/:hash", function (req, res) {
-  var urlCheck = urls[req.params.hash];
+app.delete("/agents/:hash", function (req, res) {
+  var urlCheck = agents[req.params.hash];
   if (urlCheck) {
     urlCheck.stop();
-    delete urls[req.params.hash];
+    delete agents[req.params.hash];
   }
   res.send({ ok: true });
 });
@@ -212,13 +236,11 @@ var toJson = function (obj) {
     totalChecks: obj.totalChecks,
     maxResponse: _.max(responseTimes) || 0,
     minResponse: _.min(responseTimes) || 0,
-    avgResponse: _.reduce(responseTimes, function (sum, obj) {
-      return sum + obj.msec;
-    }) / (responseTimes.length || 1) * 1.0
+    avgResponse: Stats.avg(responseTimes)
   };
   var meta = {
     _links: {
-      self: (process.env.HEROKU_URL || "/") + "urls/" + obj.id
+      self: (process.env.HEROKU_URL || "/") + "agents/" + obj.id
     }
   };
   return _.extend(meta, { stats: stats }, attrs);
