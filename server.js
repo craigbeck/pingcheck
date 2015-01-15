@@ -151,7 +151,7 @@ app.get("/", function (req, res) {
     });
     return;
   }
-  console.log("status");
+
   res.send({
     name: pkg.name,
     version: pkg.version,
@@ -259,12 +259,17 @@ app.delete("/agents/:hash", function (req, res) {
 
 var toJson = function (obj) {
   var attrs = _.pick(obj, "id href interval history state".split(" "));
+  attrs.history = _.last(attrs.history, 10);
   var responseTimes = _.pluck(obj.history, "msec");
   var stats = {
     totalChecks: obj.totalChecks,
     maxResponse: _.max(responseTimes) || 0,
     minResponse: _.min(responseTimes) || 0,
-    avgResponse: Stats.avg(responseTimes)
+    avgResponse: Stats.avg(responseTimes),
+    percentiles: {
+      "90th": Stats.pct(responseTimes, 0.90),
+      "80th": Stats.pct(responseTimes, 0.80)
+    }
   };
   var meta = {
     _links: {
