@@ -14,6 +14,34 @@ var fs = require("fs");
 
 var app = express().http().io();
 
+var connections = {};
+
+app.io.on("connection", function (socket) {
+  var pingClients, tid;
+  console.log("NEW client connection", socket.id);
+  connections[socket.id] = socket;
+  socket.on("disconnect", function () {
+    console.log("CLIENT disconnect!", socket.id);
+    delete connections[socket.id];
+    if (!connections.length) {
+      clearTimeout(tid);
+    }
+  });
+  pingClients = function () {
+    app.io.broadcast("ping", new Date());
+    console.log("SENT ping");
+    tid = setTimeout(pingClients, 30 * 1000);
+  };
+  if (!tid) {
+    tid = setTimeout(pingClients, 10 * 1000);
+  }
+});
+
+app.io.on("error", function (err) {
+  console.log("IO ERR", err);
+});
+
+
 app.io.route("ping", function (req) {
   console.log("socket ping RECV");
   setTimeout(function () {
@@ -254,7 +282,7 @@ app.get("/*", notFound);
 app.post("/*", notFound);
 
 
-var server = app.listen(process.env.PORT || 3003, function () {
+var server = app.listen(process.env.PORT || 3003, function (err) {
   var addr = process.env.HEROKU_URL
              ? process.env.HEROKU_URL
              : server.address().address +":"+ server.address().port;
