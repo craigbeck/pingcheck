@@ -71,7 +71,11 @@
 
 	io.on("pong", function () {
 		console.log("RECV pong");
-	});
+  });
+
+  io.on("ping", function () {
+    console.log("RECV ping", arguments);
+  });
 
 	</script>
 </body>
