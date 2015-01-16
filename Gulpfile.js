@@ -28,7 +28,7 @@ gulp.task("mocha", function () {
 gulp.task("test", ["mocha"]);
 
 gulp.task("jshint", function (){
-  return gulp.src(["Gulpfile.js", "index.js", "lib/*.js", "test/*.js"])
+  return gulp.src(["Gulpfile.js", "server.js", "lib/*.js", "test/*.js"])
     .pipe(jshint(_jsonCfg(".jshint.json")))
     .pipe(jshint.reporter(stylish))
     .pipe(jshint.reporter("fail"));
