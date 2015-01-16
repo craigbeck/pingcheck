@@ -6,14 +6,13 @@
   <script src="/socket.io/socket.io.js"></script>
   <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
   <script src="https://d19p4zemcycm7a.cloudfront.net/w2/auth0-widget-2.4.6.min.js"></script>
+  <script src="/js/app.js"></script>
   <script type="text/javascript">
-
     var widget = new Auth0Widget({
       domain:         "app33164094.auth0.com",
       clientID:       "rakzQVY18vG1GOEIhIhWMKIt6Gq2PeVz",
       callbackURL:    "http://localhost:5000/callback"
     });
-
   </script>
 </head>
 <style>
@@ -37,44 +36,5 @@
       </div>
     </nav>
   </div>
-  <script type="text/javascript">
-
-  var io = io.connect();
-
-  io.on("connect", function () {
-    console.log("IO online");
-  });
-
-  io.on("reconnect", function () {
-    console.log("IO reconnect");
-  });
-
-  io.on("disconnect", function () {
-    console.log("IO offline");
-  });
-
-  io.on("pong", function () {
-    console.log("RECV pong");
-  });
-
-  io.on("ping", function () {
-    console.log("RECV ping", arguments);
-  });
-
-  io.on("check:completed", function (msg) {
-    console.log("RECV check:completed", msg.count);
-  });
-
-  var app = {};
-  io.on("version", function (version) {
-    if (app.info) {
-      if (app.info.version !== version.version) {
-        alert("New app version!");
-      }
-    };
-    app.info = version;
-  });
-
-  </script>
 </body>
 </html>
