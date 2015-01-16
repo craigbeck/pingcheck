@@ -72,6 +72,28 @@ app.io.route("ping", function (req) {
   }, 500);
 });
 
+var toJson = function (obj) {
+  var attrs = _.pick(obj, "id href interval history state".split(" "));
+  attrs.history = _.last(attrs.history, 10);
+  var responseTimes = _.pluck(obj.history, "msec");
+  var stats = {
+    totalChecks: obj.totalChecks,
+    maxResponse: _.max(responseTimes) || 0,
+    minResponse: _.min(responseTimes) || 0,
+    avgResponse: Stats.avg(responseTimes),
+    percentiles: {
+      "90th": Stats.pct(responseTimes, 0.90),
+      "80th": Stats.pct(responseTimes, 0.80)
+    }
+  };
+  var meta = {
+    _links: {
+      self: (process.env.HEROKU_URL || "/") + "agents/" + obj.id
+    }
+  };
+  return _.extend(meta, { stats: stats }, attrs);
+};
+
 var nextReqId = (function () {
   var id = 0;
   return function () {
@@ -92,15 +114,15 @@ var evtChannel = postal.channel("events");
 if (process.env.KEEN_WRITE_KEY && process.env.KEEN_PROJECT_ID) {
   // Configure instance. Only projectId and writeKey are required to send data.
   var keen = keenIO.configure({
-      projectId: process.env['KEEN_PROJECT_ID'],
-      writeKey: process.env['KEEN_WRITE_KEY']
+      projectId: process.env.KEEN_PROJECT_ID,
+      writeKey: process.env.KEEN_WRITE_KEY
   });
 
   var agentStats = {
     runningAgents: 0,
     totalAgents: 0,
     checkCount: 0
-  }
+  };
 
   evtChannel.subscribe("url.checked", function (data) {
     keen.addEvent("url.checked", data);
@@ -126,7 +148,8 @@ if (process.env.KEEN_WRITE_KEY && process.env.KEEN_PROJECT_ID) {
   var pulse = function () {
     keen.addEvent("agent.stats", agentStats);
     setTimeout(pulse, 60 * 1000);
-  }
+  };
+
   process.nextTick(pulse);
 }
 
@@ -157,6 +180,7 @@ var requestId = function (req, res, next) {
 app.use(requestId);
 
 app.get("/", function (req, res) {
+  console.log("SESSION", req.session);
   if (req.accepts("html")) {
     fs.readFile("./app/index.html", function (err, data) {
       if (err) {
@@ -191,7 +215,7 @@ var isValidUri = function (str) {
   } catch (e) {
     return false;
   }
-}
+};
 
 app.post("/agents", function (req, res) {
   var uri = req.body.url;
@@ -273,31 +297,9 @@ app.delete("/agents/:hash", function (req, res) {
 });
 
 // Auth0 callback handler
-app.get('/callback', passport.authenticate('auth0'), function(req, res) {
+app.get("/callback", passport.authenticate("auth0"), function(req, res) {
     res.redirect("/");
 });
-
-var toJson = function (obj) {
-  var attrs = _.pick(obj, "id href interval history state".split(" "));
-  attrs.history = _.last(attrs.history, 10);
-  var responseTimes = _.pluck(obj.history, "msec");
-  var stats = {
-    totalChecks: obj.totalChecks,
-    maxResponse: _.max(responseTimes) || 0,
-    minResponse: _.min(responseTimes) || 0,
-    avgResponse: Stats.avg(responseTimes),
-    percentiles: {
-      "90th": Stats.pct(responseTimes, 0.90),
-      "80th": Stats.pct(responseTimes, 0.80)
-    }
-  };
-  var meta = {
-    _links: {
-      self: (process.env.HEROKU_URL || "/") + "agents/" + obj.id
-    }
-  };
-  return _.extend(meta, { stats: stats }, attrs);
-}
 
 var notFound = function (req, res) {
   res.redirect("/");
