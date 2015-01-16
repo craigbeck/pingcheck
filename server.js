@@ -5,6 +5,8 @@ var Rollbar = require("rollbar");
 var onFinished = require("on-finished");
 var keenIO = require("keen.io");
 var postal = require("postal");
+var passport = require("passport");
+var strategy = require("./lib/auth");
 var _ = require("lodash");
 var url = require("url");
 var pkg = require("./package.json");
@@ -15,6 +17,25 @@ var fs = require("fs");
 var app = express().http().io();
 
 var connections = {};
+
+app.configure(function () {
+  this.use(BodyParser.json());
+  this.use(express.cookieParser());
+  this.use(express.session({secret: "h0lyS3kretHand5h@k3Ba7m4n!"}));
+  this.use(passport.initialize());
+  this.use(passport.session());
+
+  this.use(app.router);
+
+  if (process.env.ROLLBAR_ACCESS_TOKEN) {
+    Rollbar.init(process.env.ROLLBAR_ACCESS_TOKEN);
+    app.use(Rollbar.errorHandler(process.env.ROLLBAR_ACCESS_TOKEN));
+
+    notify = function (message) {
+      Rollbar.reportMessage(message);
+    };
+  }
+});
 
 app.io.on("connection", function (socket) {
   var pingClients, tid;
@@ -27,6 +48,11 @@ app.io.on("connection", function (socket) {
       clearTimeout(tid);
     }
   });
+  socket.emit("version", {
+    name: pkg.name,
+    version: pkg.version
+  });
+  console.log("socket rooms:", socket.rooms);
   pingClients = function () {
     app.io.broadcast("ping", new Date());
     console.log("SENT ping");
@@ -57,20 +83,11 @@ var nextReqId = (function () {
   };
 })();
 
-app.use(BodyParser.json());
 
 var notify = function (message) {
   console.log("%s - NOTIFY %s", new Date().valueOf, message);
 };
 
-if (process.env.ROLLBAR_ACCESS_TOKEN) {
-  Rollbar.init(process.env.ROLLBAR_ACCESS_TOKEN);
-  app.use(Rollbar.errorHandler(process.env.ROLLBAR_ACCESS_TOKEN));
-
-  notify = function (message) {
-    Rollbar.reportMessage(message);
-  };
-}
 
 if(process.env.NODETIME_ACCOUNT_KEY) {
   require("nodetime").profile({
@@ -90,11 +107,14 @@ if (process.env.KEEN_WRITE_KEY && process.env.KEEN_PROJECT_ID) {
 
   var agentStats = {
     runningAgents: 0,
-    totalAgents: 0
+    totalAgents: 0,
+    checkCount: 0
   }
 
   evtChannel.subscribe("url.checked", function (data) {
     keen.addEvent("url.checked", data);
+    agentStats.checkCount++;
+    app.io.emit("check:completed", { count: agentStats.checkCount });
   });
 
   evtChannel.subscribe("url.added", function (data) {
@@ -104,10 +124,12 @@ if (process.env.KEEN_WRITE_KEY && process.env.KEEN_PROJECT_ID) {
 
   evtChannel.subscribe("agent.started", function (data) {
     agentStats.runningAgents++;
+    app.io.broadcast("agent:started", { count: agentStats.runningAgents });
   });
 
   evtChannel.subscribe("agent.stopped", function (data) {
     agentStats.runningAgents--;
+    app.io.broadcast("agent:stopped", { count: agentStats.runningAgents });
   });
 
   var pulse = function () {
@@ -135,11 +157,13 @@ app.use(function (req, res, next) {
   next();
 });
 
-app.use(function (req, res, next) {
+var requestId = function (req, res, next) {
   req._requestId = nextReqId();
   res.setHeader("X-RequestId", req._requestId);
   next();
-});
+};
+
+app.use(requestId);
 
 app.get("/", function (req, res) {
   if (req.accepts("html")) {
@@ -257,6 +281,11 @@ app.delete("/agents/:hash", function (req, res) {
   res.send({ ok: true });
 });
 
+// Auth0 callback handler
+app.get('/callback', passport.authenticate('auth0'), function(req, res) {
+    res.redirect("/");
+});
+
 var toJson = function (obj) {
   var attrs = _.pick(obj, "id href interval history state".split(" "));
   attrs.history = _.last(attrs.history, 10);
@@ -286,12 +315,6 @@ var notFound = function (req, res) {
 app.get("/*", notFound);
 app.post("/*", notFound);
 
-
-var server = app.listen(process.env.PORT || 3003, function (err) {
-  var addr = process.env.HEROKU_URL
-             ? process.env.HEROKU_URL
-             : server.address().address +":"+ server.address().port;
-  console.log("server listening on %s", addr);
-});
+app.listen(process.env.PORT || 5000);
 
 
