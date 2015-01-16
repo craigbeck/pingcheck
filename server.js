@@ -1,21 +1,22 @@
-var express = require("express.io");
-var crypto = require('crypto');
-var BodyParser = require("body-parser");
-var Rollbar = require("rollbar");
-var onFinished = require("on-finished");
-var keenIO = require("keen.io");
-var postal = require("postal");
-var passport = require("passport");
-var strategy = require("./lib/auth");
 var _ = require("lodash");
-var url = require("url");
-var pkg = require("./package.json");
-var Agent = require("./lib/agent");
-var Stats = require("./lib/stats");
+var BodyParser = require("body-parser");
+var crypto = require("crypto");
+var express = require("express.io");
 var fs = require("fs");
+var keenIO = require("keen.io");
+var onFinished = require("on-finished");
+var passport = require("passport");
+var postal = require("postal");
+var Rollbar = require("rollbar");
+var url = require("url");
+
+var Agent = require("./lib/agent");
+var pkg = require("./package.json");
+var Stats = require("./lib/stats");
+var strategy = require("./lib/auth");
+
 
 var app = express().http().io();
-
 var connections = {};
 
 app.configure(function () {
