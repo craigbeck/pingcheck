@@ -31,10 +31,6 @@ app.configure(function () {
   if (process.env.ROLLBAR_ACCESS_TOKEN) {
     Rollbar.init(process.env.ROLLBAR_ACCESS_TOKEN);
     app.use(Rollbar.errorHandler(process.env.ROLLBAR_ACCESS_TOKEN));
-
-    notify = function (message) {
-      Rollbar.reportMessage(message);
-    };
   }
 });
 
@@ -83,12 +79,6 @@ var nextReqId = (function () {
     return id;
   };
 })();
-
-
-var notify = function (message) {
-  console.log("%s - NOTIFY %s", new Date().valueOf, message);
-};
-
 
 if(process.env.NODETIME_ACCOUNT_KEY) {
   require("nodetime").profile({
