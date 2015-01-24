@@ -14,7 +14,8 @@ module.exports = {
     filename: "app.bundle.js"
   },
   externals: [
-    "io"
+    "io",
+    "window"
   ],
   module: {
     loaders: [

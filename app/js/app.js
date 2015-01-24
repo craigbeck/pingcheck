@@ -1,4 +1,5 @@
 var io = require("io");
+var window = require("window");
 
 var io = io.connect();
 
@@ -35,5 +36,7 @@ io.on("version", function (version) {
   };
   app.info = version;
 });
+
+window.io = io;
 
 console.log("READY");
