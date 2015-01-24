@@ -15,11 +15,17 @@ var pkg = require("./package.json");
 var Stats = require("./lib/stats");
 var strategy = require("./lib/auth");
 
-console.log("starting....");
 
 var app = express().http().io();
 var connections = {};
 
+app.log = function (message) {
+  console.log("%s [app] -",
+              new Date().valueOf(),
+              message);
+};
+
+app.log("starting....");
 
 app.use(BodyParser.json());
 app.use(express.cookieParser());
@@ -31,6 +37,12 @@ app.use(passport.session());
 app.use(function (req, res, next) {
   req._startAt = process.hrtime();
   req._startTime = new Date();
+  req.log = function (message) {
+    console.log("%s [%s] -",
+                req._startTime.valueOf(),
+                req._requestId,
+                message);
+  };
   onFinished(res, function () {
     var diff = process.hrtime(req._startAt);
     var ms = diff[0] * 1e3 + diff[1] * 1e-6;
@@ -46,6 +58,7 @@ app.use(function (req, res, next) {
   next();
 });
 
+
 app.use(express.static("./app"));
 app.use(app.router);
 
@@ -56,10 +69,10 @@ if (process.env.ROLLBAR_ACCESS_TOKEN) {
 
 app.io.on("connection", function (socket) {
   var pingClients, tid;
-  console.log("NEW client connection", socket.id);
+  app.log("NEW client connection", socket.id);
   connections[socket.id] = socket;
   socket.on("disconnect", function () {
-    console.log("CLIENT disconnect!", socket.id);
+    app.log("CLIENT disconnect!", socket.id);
     delete connections[socket.id];
     if (!connections.length) {
       clearTimeout(tid);
@@ -69,10 +82,10 @@ app.io.on("connection", function (socket) {
     name: pkg.name,
     version: pkg.version
   });
-  console.log("socket rooms:", socket.rooms);
+  app.log("socket rooms:", socket.rooms);
   pingClients = function () {
     app.io.broadcast("ping", new Date());
-    console.log("SENT ping");
+    app.log("SENT ping");
     tid = setTimeout(pingClients, 30 * 1000);
   };
   if (!tid) {
@@ -81,12 +94,12 @@ app.io.on("connection", function (socket) {
 });
 
 app.io.on("error", function (err) {
-  console.log("IO ERR", err);
+  app.log("IO ERR", err);
 });
 
 
 app.io.route("ping", function (req) {
-  console.log("socket ping RECV");
+  app.log("RECV ping");
   setTimeout(function () {
     req.io.emit("pong");
   }, 500);
