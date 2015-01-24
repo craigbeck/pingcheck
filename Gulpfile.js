@@ -7,6 +7,7 @@ var mocha = require("gulp-mocha");
 var runSequence = require("run-sequence");
 var stylish = require("jshint-stylish");
 var webpack = require("webpack");
+var _ = require("lodash");
 
 // Configuration
 var buildCfg = require("./webpack.config");
