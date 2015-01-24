@@ -2,11 +2,15 @@
 <html>
 <head>
   <title>pingcheck</title>
+
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="/socket.io/socket.io.js"></script>
   <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+
   <script src="https://d19p4zemcycm7a.cloudfront.net/w2/auth0-widget-2.4.6.min.js"></script>
-  <script src="/js/app.js"></script>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/dist/js/app.bundle.js"></script>
+
   <script type="text/javascript">
     var widget = new Auth0Widget({
       domain:         "app33164094.auth0.com",
@@ -15,6 +19,7 @@
     });
   </script>
 </head>
+
 <style>
   nav.navbar-fixed-top + * {
     padding-top: 70px;
@@ -23,6 +28,7 @@
     padding-top: 0.5em;
   }
 </style>
+
 <body>
   <div id="app">
     <nav class="navbar navbar-default navbar-static-top">

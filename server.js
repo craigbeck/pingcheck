@@ -15,24 +15,44 @@ var pkg = require("./package.json");
 var Stats = require("./lib/stats");
 var strategy = require("./lib/auth");
 
+console.log("starting....");
 
 var app = express().http().io();
 var connections = {};
 
-app.configure(function () {
-  this.use(BodyParser.json());
-  this.use(express.cookieParser());
-  this.use(express.session({secret: "h0lyS3kretHand5h@k3Ba7m4n!"}));
-  this.use(passport.initialize());
-  this.use(passport.session());
 
-  this.use(app.router);
+app.use(BodyParser.json());
+app.use(express.cookieParser());
+app.use(express.session({secret: "h0lyS3kretHand5h@k3Ba7m4n!"}));
+app.use(passport.initialize());
+app.use(passport.session());
 
-  if (process.env.ROLLBAR_ACCESS_TOKEN) {
-    Rollbar.init(process.env.ROLLBAR_ACCESS_TOKEN);
-    app.use(Rollbar.errorHandler(process.env.ROLLBAR_ACCESS_TOKEN));
-  }
+// setup logging handler
+app.use(function (req, res, next) {
+  req._startAt = process.hrtime();
+  req._startTime = new Date();
+  onFinished(res, function () {
+    var diff = process.hrtime(req._startAt);
+    var ms = diff[0] * 1e3 + diff[1] * 1e-6;
+    var elapsed = ms.toFixed(3);
+    console.log("%s [%s] - %s %s %s (%sms)",
+                req._startTime.valueOf(),
+                req._requestId,
+                req.method,
+                req.path,
+                res.statusCode,
+                elapsed);
+  });
+  next();
 });
+
+app.use(express.static("./app"));
+app.use(app.router);
+
+if (process.env.ROLLBAR_ACCESS_TOKEN) {
+  Rollbar.init(process.env.ROLLBAR_ACCESS_TOKEN);
+  app.use(Rollbar.errorHandler(process.env.ROLLBAR_ACCESS_TOKEN));
+}
 
 app.io.on("connection", function (socket) {
   var pingClients, tid;
@@ -153,24 +173,6 @@ if (process.env.KEEN_WRITE_KEY && process.env.KEEN_PROJECT_ID) {
   process.nextTick(pulse);
 }
 
-app.use(function (req, res, next) {
-  req._startAt = process.hrtime();
-  req._startTime = new Date();
-  onFinished(res, function () {
-    var diff = process.hrtime(req._startAt);
-    var ms = diff[0] * 1e3 + diff[1] * 1e-6;
-    var elapsed = ms.toFixed(3);
-    console.log("%s [%s] - %s %s %s (%sms)",
-                req._startTime.valueOf(),
-                req._requestId,
-                req.method,
-                req.path,
-                res.statusCode,
-                elapsed);
-  });
-  next();
-});
-
 var requestId = function (req, res, next) {
   req._requestId = nextReqId();
   res.setHeader("X-RequestId", req._requestId);
@@ -180,7 +182,6 @@ var requestId = function (req, res, next) {
 app.use(requestId);
 
 app.get("/", function (req, res) {
-  console.log("SESSION", req.session);
   if (req.accepts("html")) {
     fs.readFile("./app/index.html", function (err, data) {
       if (err) {
@@ -302,8 +303,9 @@ app.get("/callback", passport.authenticate("auth0"), function(req, res) {
 });
 
 var notFound = function (req, res) {
-  res.redirect("/");
+  res.status(404).send({ ok: false, error: "Not Found", path: req.path });
 };
+
 
 app.get("/*", notFound);
 app.post("/*", notFound);

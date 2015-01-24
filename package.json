@@ -21,6 +21,7 @@
     "passport": "^0.2.1",
     "passport-auth0": "^0.2.0",
     "postal": "0.12.3",
+    "react": "^0.12.2",
     "request": "2.51.0",
     "rollbar": "0.4.1"
   },
@@ -35,9 +36,11 @@
     "gulp-jshint": "1.9.0",
     "gulp-mocha": "2.0.0",
     "gulp-plumber": "^0.6.6",
+    "gulp-util": "^3.0.2",
     "gulp-watch": "^3.0.0",
     "jshint-stylish": "1.0.0",
     "run-sequence": "1.0.2",
-    "sinon": "1.12.2"
+    "sinon": "1.12.2",
+    "webpack": "^1.5.3"
   }
 }
