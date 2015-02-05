@@ -86,5 +86,5 @@ gulp.task("check", function (done) {
 });
 
 gulp.task("test", ["mocha"]);
-gulp.task("default", ["check"]);
+gulp.task("default", ["check", "build"]);
 

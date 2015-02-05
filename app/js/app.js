@@ -1,42 +1,10 @@
-var io = require("io");
 var window = require("window");
-
-var io = io.connect();
-
-io.on("connect", function () {
-  console.log("IO online");
-});
-
-io.on("reconnect", function () {
-  console.log("IO reconnect");
-});
-
-io.on("disconnect", function () {
-  console.log("IO offline");
-});
-
-io.on("pong", function () {
-  console.log("RECV pong");
-});
-
-io.on("ping", function () {
-  console.log("RECV ping", arguments);
-});
-
-io.on("check:completed", function (msg) {
-  console.log("RECV check:completed", msg.count);
-});
-
-var app = {};
-io.on("version", function (version) {
-  if (app.info) {
-    if (app.info.version !== version.version) {
-      alert("New app version!");
-    }
-  };
-  app.info = version;
-});
+var document = require("document");
+var React = require("react");
+var io = require("./io-events");
+var AppController = require("./app-controller.jsx");
 
 window.io = io;
 
-console.log("READY");
+var app = React.createElement(AppController);
+React.render(app, document.body);

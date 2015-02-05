@@ -86,7 +86,7 @@ app.io.on("connection", function (socket) {
   pingClients = function () {
     app.io.broadcast("ping", new Date());
     app.log("SENT ping");
-    tid = setTimeout(pingClients, 30 * 1000);
+    tid = setTimeout(pingClients, 45 * 1000);
   };
   if (!tid) {
     tid = setTimeout(pingClients, 10 * 1000);

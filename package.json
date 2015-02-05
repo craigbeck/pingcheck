@@ -39,6 +39,8 @@
     "gulp-util": "^3.0.2",
     "gulp-watch": "^3.0.0",
     "jshint-stylish": "1.0.0",
+    "json-loader": "^0.5.1",
+    "jsx-loader": "^0.12.2",
     "run-sequence": "1.0.2",
     "sinon": "1.12.2",
     "webpack": "^1.5.3"

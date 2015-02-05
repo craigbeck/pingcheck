@@ -15,11 +15,14 @@ module.exports = {
   },
   externals: [
     "io",
-    "window"
+    "window",
+    "document",
+    "Auth0Widget"
   ],
   module: {
     loaders: [
       { test: /\.jsx$/, loader: "jsx-loader" },
+      { test: /\.json$/, loader: "json-loader" },
       // Backbone somehow hit's the AMD code path instead of CommonJS one.
       { test: /backbone\.js$/, loader: "imports?define=>false" }
     ]
@@ -31,16 +34,16 @@ module.exports = {
   },
   plugins: [
     // Optimize
-    // new webpack.optimize.DedupePlugin(),
+    new webpack.optimize.DedupePlugin(),
     // new webpack.optimize.UglifyJsPlugin(),
-    new webpack.DefinePlugin({
-      "process.env": {
-        NODE_ENV: JSON.stringify("production") // Signal production mode for React JS libs.
-      }
-    }),
+    // new webpack.DefinePlugin({
+    //   "process.env": {
+    //     NODE_ENV: JSON.stringify("production") // Signal production mode for React JS libs.
+    //   }
+    // }),
     // Manually do source maps to use alternate host.
     new webpack.SourceMapDevToolPlugin(
       "app.bundle.js.map",
-      "\n//# sourceMappingURL=http://127.0.0.1:3001/app/dist/js/[url]")
+      "\n//# sourceMappingURL=http://127.0.0.1:5000/dist/js/[url]")
   ]
 };

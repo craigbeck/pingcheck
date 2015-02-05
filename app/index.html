@@ -5,19 +5,8 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-
   <script src="https://d19p4zemcycm7a.cloudfront.net/w2/auth0-widget-2.4.6.min.js"></script>
-
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/dist/js/app.bundle.js"></script>
-
-  <script type="text/javascript">
-    var widget = new Auth0Widget({
-      domain:         "app33164094.auth0.com",
-      clientID:       "rakzQVY18vG1GOEIhIhWMKIt6Gq2PeVz",
-      callbackURL:    "http://localhost:5000/callback"
-    });
-  </script>
 </head>
 
 <style>
@@ -30,17 +19,6 @@
 </style>
 
 <body>
-  <div id="app">
-    <nav class="navbar navbar-default navbar-static-top">
-      <div class="container-fluid">
-        <div class="navbar-header">
-          <a class="navbar-brand" href="/">pingcheck</a>
-        </div>
-        <div class="collapse navbar-collapse">
-          <button type="button" class="btn btn-default navbar-btn navbar-right" onclick="widget.signin()">Sign in</button>
-        </div>
-      </div>
-    </nav>
-  </div>
 </body>
+<script src="/dist/js/app.bundle.js"></script>
 </html>
