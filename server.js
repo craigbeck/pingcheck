@@ -15,6 +15,9 @@ var pkg = require("./package.json");
 var Stats = require("./lib/stats");
 var strategy = require("./lib/auth");
 
+// setup server to handle compiling of jsx files
+require("node-jsx").install({ extension: ".jsx" });
+
 
 var app = express().http().io();
 var connections = {};
@@ -32,6 +35,22 @@ app.use(express.cookieParser());
 app.use(express.session({secret: "h0lyS3kretHand5h@k3Ba7m4n!"}));
 app.use(passport.initialize());
 app.use(passport.session());
+
+var nextReqId = (function () {
+  var id = 0;
+  return function () {
+    id++;
+    return id;
+  };
+})();
+
+var requestId = function (req, res, next) {
+  req._requestId = nextReqId();
+  res.setHeader("X-RequestId", req._requestId);
+  next();
+};
+
+app.use(requestId);
 
 // setup logging handler
 app.use(function (req, res, next) {
@@ -127,14 +146,6 @@ var toJson = function (obj) {
   return _.extend(meta, { stats: stats }, attrs);
 };
 
-var nextReqId = (function () {
-  var id = 0;
-  return function () {
-    id++;
-    return id;
-  };
-})();
-
 if(process.env.NODETIME_ACCOUNT_KEY) {
   require("nodetime").profile({
     accountKey: process.env.NODETIME_ACCOUNT_KEY,
@@ -186,23 +197,26 @@ if (process.env.KEEN_WRITE_KEY && process.env.KEEN_PROJECT_ID) {
   process.nextTick(pulse);
 }
 
-var requestId = function (req, res, next) {
-  req._requestId = nextReqId();
-  res.setHeader("X-RequestId", req._requestId);
-  next();
-};
+var hbs = require("express-hbs");
+// Use `.hbs` for extensions and find partials in `views/partials`.
+app.engine("html", hbs.express3({
+  partialsDir: __dirname + "/views/partials"
+}));
+app.set("view engine", "html");
 
-app.use(requestId);
+var React = require("react");
+var AppController = require("./app/js/app-controller.jsx");
 
 app.get("/", function (req, res) {
   if (req.accepts("html")) {
-    fs.readFile("./app/index.html", function (err, data) {
-      if (err) {
-        throw err;
-      }
-      res.send(data.toString());
-    });
-    return;
+    // fs.readFile("./app/index.html", function (err, data) {
+    //   if (err) {
+    //     throw err;
+    //   }
+    //   res.send(data.toString());
+    // });
+    var app = React.renderToString(AppController);
+    return res.render("./app/index.html");
   }
 
   res.send({

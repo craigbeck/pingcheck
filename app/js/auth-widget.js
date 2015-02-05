@@ -1,4 +1,11 @@
-var Auth0Widget = require("Auth0Widget");
+var Auth0Widget;
+
+try {
+  Auth0Widget = require("Auth0Widget");
+} catch (e) {
+  console.log("auth-widget.js", e);
+  Auth0Widget = function () {};
+}
 
 var widget = new Auth0Widget({
   domain:         "app33164094.auth0.com",

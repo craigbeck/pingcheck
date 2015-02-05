@@ -12,14 +12,38 @@ var JumboTron = React.createClass({
   }
 });
 
+var Container = React.createClass({
+  render: function () {
+    return (
+      <div className="container">
+        {this.props.children}
+      </div>
+    );
+  }
+});
+
+var Row = React.createClass({
+  render: function () {
+    return (
+      <div className="row">
+        {this.props.children}
+      </div>
+    );
+  }
+});
+
 var AppController = React.createClass({
   render: function () {
     return (
       <div>
         <AppNavigation/>
-        <div className="container">
-          <JumboTron title="PingCheck!" description="making endless fucking web requests"/>
-        </div>
+        <Container>
+          <Row>
+            <div className="col-md-8 col-md-offset-2">
+              <JumboTron title="PingCheck!" description="making endless fucking web requests"/>
+            </div>
+          </Row>
+        </Container>
       </div>
     );
   }
