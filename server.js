@@ -25,6 +25,9 @@ require("node-jsx").install({
 var app = express().http().io();
 var connections = {};
 
+var db = mongo(process.env.MONGOLAB_URI, ["agents", "activity"]);
+db.activity.ensureIndex("agentId");
+
 var requestLogger = function(req, res, next) {
   req._startAt = process.hrtime();
   req._startTime = new Date();
@@ -262,9 +265,6 @@ var isValidUri = function(str) {
   }
 };
 
-var db = mongo(process.env.MONGOLAB_URI, ["agents", "activity"]);
-db.activity.ensureIndex("agentId");
-
 var initializeAgent = function(agent) {
   agent.on("started", function(obj) {
     console.log("%s [agent] - STARTED %s %s",
@@ -470,7 +470,7 @@ app.put("/agents/:hash", function(req, res) {
     });
   }
   var state = req.body.state;
-  if (state != "ready") {
+  if (state !== "ready") {
     return res.status(400).send({
       ok: false,
       error: "Missing State"
@@ -495,6 +495,7 @@ app.delete("/agents/:hash", function(req, res) {
 
 // Auth0 callback handler
 app.get("/callback", passport.authenticate("auth0"), function(req, res) {
+
   res.redirect("/");
 });
 
