@@ -1,8 +1,6 @@
 var React = require("react");
 var auth0 = require("./auth-widget");
 
-console.log("auth0-widget", auth0);
-
 var AppNavigation = React.createClass({
   signin: function () {
     auth0.signin();

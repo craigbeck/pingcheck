@@ -4,7 +4,9 @@
   "description": "Website status checker",
   "main": "server.js",
   "scripts": {
-    "test": "gulp check"
+    "build": "gulp build",
+    "test": "gulp check",
+    "postinstall": "gulp build"
   },
   "author": "Craig Beck <luckybonza@gmail.com> (http://craigbeck.github.io/)",
   "license": "MIT",
@@ -23,6 +25,7 @@
     "passport": "^0.2.1",
     "passport-auth0": "^0.2.0",
     "postal": "0.12.3",
+    "promised-mongo": "^0.11.1",
     "react": "^0.12.2",
     "request": "2.51.0",
     "rollbar": "0.4.1"
