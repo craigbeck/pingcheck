@@ -16,20 +16,26 @@ var pkg = require("./package.json");
 var Stats = require("./lib/stats");
 var strategy = require("./lib/auth");
 
+// setup server to handle compiling of jsx files
+require("node-jsx").install({ extension: ".jsx" });
 
 var app = express().http().io();
 var connections = {};
 
-
-var requestId = function (req, res, next) {
-  req._requestId = nextReqId();
-  res.setHeader("X-RequestId", req._requestId);
-  next();
-};
-
 var requestLogger = function (req, res, next) {
   req._startAt = process.hrtime();
   req._startTime = new Date();
+
+  req.log = function () {
+    var args = Array.prototype.slice.call(arguments, 0);
+    var arglist = [
+      "%s [%s] -",
+      req._startTime.valueOf(),
+      req._requestId
+    ].concat(args);
+    console.log.apply(console, arglist);
+  };
+
   onFinished(res, function () {
     var diff = process.hrtime(req._startAt);
     var ms = diff[0] * 1e3 + diff[1] * 1e-6;
@@ -43,29 +49,53 @@ var requestLogger = function (req, res, next) {
                 elapsed);
   });
   next();
-}
+};
 
+var nextReqId = (function () {
+  var id = 0;
+  return function () {
+    id++;
+    return id;
+  };
+})();
+
+var requestId = function (req, res, next) {
+  req._requestId = nextReqId();
+  res.setHeader("X-RequestId", req._requestId);
+  next();
+};
+
+app.log = function (message) {
+  console.log("%s [app] -",
+              new Date().valueOf(),
+              message);
+};
+
+app.log("starting....");
+
+app.use(requestId);
+app.use(requestLogger);
 app.use(BodyParser.json());
 app.use(express.cookieParser());
 app.use(express.session({secret: "h0lyS3kretHand5h@k3Ba7m4n!"}));
 app.use(passport.initialize());
 app.use(passport.session());
-
-app.use(requestId);
-app.use(requestLogger);
 app.use(app.router);
+app.use(express.static("./app"));
+
 
 if (process.env.ROLLBAR_ACCESS_TOKEN) {
   Rollbar.init(process.env.ROLLBAR_ACCESS_TOKEN);
   app.use(Rollbar.errorHandler(process.env.ROLLBAR_ACCESS_TOKEN));
+  app.log("using Rollbar");
 }
 
 app.io.on("connection", function (socket) {
   var pingClients, tid;
-  console.log("NEW client connection", socket.id);
+  app.log("NEW client connection", socket.id);
   connections[socket.id] = socket;
   socket.on("disconnect", function () {
-    console.log("CLIENT disconnect!", socket.id);
+    app.log("CLIENT disconnect!", socket.id);
     delete connections[socket.id];
     if (!connections.length) {
       clearTimeout(tid);
@@ -75,11 +105,11 @@ app.io.on("connection", function (socket) {
     name: pkg.name,
     version: pkg.version
   });
-  console.log("socket rooms:", socket.rooms);
+  app.log("socket rooms:", socket.rooms);
   pingClients = function () {
     app.io.broadcast("ping", new Date());
-    console.log("SENT ping");
-    tid = setTimeout(pingClients, 30 * 1000);
+    app.log("SENT ping");
+    tid = setTimeout(pingClients, 45 * 1000);
   };
   if (!tid) {
     tid = setTimeout(pingClients, 10 * 1000);
@@ -87,12 +117,12 @@ app.io.on("connection", function (socket) {
 });
 
 app.io.on("error", function (err) {
-  console.log("IO ERR", err);
+  app.log("IO ERR", err);
 });
 
 
 app.io.route("ping", function (req) {
-  console.log("socket ping RECV");
+  app.log("RECV ping");
   setTimeout(function () {
     req.io.emit("pong");
   }, 500);
@@ -119,14 +149,6 @@ var toJson = function (obj) {
   };
   return _.extend(meta, { stats: stats }, attrs);
 };
-
-var nextReqId = (function () {
-  var id = 0;
-  return function () {
-    id++;
-    return id;
-  };
-})();
 
 if(process.env.NODETIME_ACCOUNT_KEY) {
   require("nodetime").profile({
@@ -179,15 +201,26 @@ if (process.env.KEEN_WRITE_KEY && process.env.KEEN_PROJECT_ID) {
   process.nextTick(pulse);
 }
 
+var hbs = require("express-hbs");
+// Use `.hbs` for extensions and find partials in `views/partials`.
+app.engine("html", hbs.express3({
+  partialsDir: __dirname + "/views/partials"
+}));
+app.set("view engine", "html");
+
+var React = require("react");
+var AppController = require("./app/js/app-controller.jsx");
+
 app.get("/", function (req, res) {
   if (req.accepts("html")) {
-    fs.readFile("./app/index.html", function (err, data) {
-      if (err) {
-        throw err;
-      }
-      res.send(data.toString());
-    });
-    return;
+    // fs.readFile("./app/index.html", function (err, data) {
+    //   if (err) {
+    //     throw err;
+    //   }
+    //   res.send(data.toString());
+    // });
+    var app = React.renderToString(AppController);
+    return res.render("./app/index.html");
   }
 
   res.send({
@@ -403,12 +436,10 @@ app.get("/callback", passport.authenticate("auth0"), function(req, res) {
 });
 
 var notFound = function (req, res) {
-  res.redirect("/");
+  res.status(404).send({ ok: false, error: "Not Found", path: req.path });
 };
 
 app.get("/*", notFound);
 app.post("/*", notFound);
 
 app.listen(process.env.PORT || 5000);
-
-
