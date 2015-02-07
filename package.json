@@ -4,7 +4,9 @@
   "description": "Website status checker",
   "main": "server.js",
   "scripts": {
-    "test": "gulp check"
+    "build": "gulp build",
+    "test": "gulp check",
+    "postinstall": "gulp build"
   },
   "author": "Craig Beck <luckybonza@gmail.com> (http://craigbeck.github.io/)",
   "license": "MIT",
