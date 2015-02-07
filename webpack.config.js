@@ -44,6 +44,6 @@ module.exports = {
     // Manually do source maps to use alternate host.
     new webpack.SourceMapDevToolPlugin(
       "app.bundle.js.map",
-      "\n//# sourceMappingURL=http://127.0.0.1:5000/dist/js/[url]")
+      "\n//# sourceMappingURL=http://127.0.0.1:5000/js/[url]")
   ]
 };

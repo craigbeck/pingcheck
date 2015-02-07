@@ -40,7 +40,7 @@ var AppController = React.createClass({
         <Container>
           <Row>
             <div className="col-md-8 col-md-offset-2">
-              <JumboTron title="PingCheck!" description="making endless fucking web requests"/>
+              <JumboTron title="PingCheck!" description="making endless web requests"/>
             </div>
           </Row>
         </Container>
