@@ -330,6 +330,7 @@ var initializeAgent = function(agent) {
   });
 
   agent.start();
+  return agent;
 };
 
 db.agents.find()
@@ -346,6 +347,7 @@ db.agents.find()
       app.log("init", agent.hash, agent.href);
       agents.push(agent);
     });
+    app.log("%s agents initialized", Object.keys(agents).length);
   });
 
 app.post("/agents", function(req, res) {
@@ -379,15 +381,10 @@ app.post("/agents", function(req, res) {
           error: "Bad Request"
         });
       }
+
       var agent = new Agent(url.format(uri), {
         interval: interval
       });
-      if (agents[agent.id]) {
-        return res.status(200).send({
-          ok: true,
-          data: toJson(agents[agent.id])
-        });
-      }
 
       var newAgent = {
         _id: agent.hash,
@@ -399,20 +396,20 @@ app.post("/agents", function(req, res) {
       };
 
       db.agents.insert(newAgent).then(function(doc) {
-        agents[agent.id] = agent;
+
+        agents[agent.id] = initializeAgent(agent);
+
         evtChannel.publish("url.added", {
           id: agent.id,
           href: agent.href
         });
-
-        initializeAgent(agent);
 
         res.status(201).send({
           ok: true,
           data: doc
         });
       }, function(err) {
-        app.log(err);
+        app.log("ERR failed to save new agent", err);
         res.status(500).send({
           ok: false,
           error: err
